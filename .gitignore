@@ -1,0 +1,214 @@
+/**
+ * Fraini Sánchez Durán
+ * Jose Manuel Gañan Escobar
+ * DamGame.cs - Basic Game Skeleton
+ * 
+ * Changes:
+ *   Functions
+ *   Colisions and Live
+ */
+
+using System;
+class Game
+{
+    static Font font18;
+    static Image player;
+    static int playerX = 50;
+    static int playerY = 120;
+    static int playerStartX = 50;
+    static int playerStartY = 120;
+    static int playerSpeed = 8;
+    static int playerWidth = 36;
+    static int playerHeight = 33;
+    static int numEnemies = 5;
+    static int[] enemyX;
+    static int[] enemyY;
+    static int[] enemySpeedX;
+    static int enemyWidth = 36; //Width pixels
+    static int enemyHeight = 33; //Heigth pixels
+    static Image enemy;
+    static Image brick;
+    static int backgroundWidth = 29;
+    static int backgroundHeight = 25;
+    static int backgroundTileSize = 36; //Total bricks
+    static string[] level1Background;
+    static Image item;
+    static int itemX;
+    static int itemY;
+    static int itemWidth = 36;
+    static int itemHeight = 33;
+    static int score = 0;
+    static int lives = 3;
+    static Random rnd;
+    static bool finished = false;
+
+    // Functions
+    static void Init()
+    {
+        bool fullScreen = false;
+        SdlHardware.Init(1024, 768, 24, fullScreen);
+        font18 = new Font("data/Joystix.ttf", 18);
+        player = new Image("data/player.png");
+        rnd = new Random();
+        enemyX = new int[numEnemies];
+        enemyY = new int[numEnemies];
+        enemySpeedX = new int[numEnemies];
+        for (int i = 0; i < numEnemies; i++)
+        {
+            enemyX[i] = rnd.Next(200, 800);
+            enemyY[i] = rnd.Next(50, 600);
+            enemySpeedX[i] = rnd.Next(1, 5);
+        }
+        enemy = new Image("data/enemy.png");
+        item = new Image("data/item.png");
+        brick = new Image("data/brick.png");
+        level1Background = new string[] {
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XXXX  XXXXXXXXXXXXXXXXXX   XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XXXX XXXXXXXXXXXXXXXXXX   XXX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XXXX XXXXXXXXXXXXXXXXXX   XXX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XX                         XX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        };
+        itemX = rnd.Next(200, 800);
+        itemY = rnd.Next(50, 600);
+    }
+    static void ShowIntro()
+    {
+        Image introBackground = new Image("data/lodeRunnerIntro.png");
+        SdlHardware.ClearScreen();
+        SdlHardware.DrawHiddenImage(introBackground, 0, 0);
+        SdlHardware.WriteHiddenText("Press SPACE to play",
+        385, 730,
+        0xEE, 0xEE, 0xEE,
+        font18);
+        SdlHardware.ShowHiddenScreen();
+        do
+        {
+            WaitForNextFrame();
+        }
+        while (!SdlHardware.KeyPressed(SdlHardware.KEY_SPC));
+    }
+    static void DrawElements()
+    {
+        SdlHardware.ClearScreen();
+        for (int row = 0; row < backgroundHeight; row++)
+        {
+            for (int column = 0; column < backgroundWidth; column++)
+            {
+                if (level1Background[row][column] == 'X')
+                    SdlHardware.DrawHiddenImage(brick,
+                    column * backgroundTileSize,
+                    row * backgroundTileSize);
+            }
+        }
+        SdlHardware.WriteHiddenText("Score: " + score,
+        60, 30,
+        0xCC, 0xCC, 0xCC,
+        font18);
+        SdlHardware.WriteHiddenText("Lives: " + lives,
+        600, 30,
+        0xCC, 0xCC, 0xCC,
+        font18);
+        SdlHardware.DrawHiddenImage(player, playerX, playerY);
+        SdlHardware.DrawHiddenImage(item, itemX, itemY);
+        for (int i = 0; i < numEnemies; i++)
+            SdlHardware.DrawHiddenImage(enemy, enemyX[i], enemyY[i]);
+        SdlHardware.ShowHiddenScreen();
+    }
+    static void CheckInput()
+    {
+        if (SdlHardware.KeyPressed(SdlHardware.KEY_RIGHT))
+            playerX += playerSpeed;
+        if (SdlHardware.KeyPressed(SdlHardware.KEY_LEFT))
+            playerX -= playerSpeed;
+        if (SdlHardware.KeyPressed(SdlHardware.KEY_DOWN))
+            playerY += playerSpeed;
+        if (SdlHardware.KeyPressed(SdlHardware.KEY_UP))
+            playerY -= playerSpeed;
+        if (SdlHardware.KeyPressed(SdlHardware.KEY_ESC))
+            finished = true;
+    }
+    static void MoveElements()
+    {
+        for (int i = 0; i < numEnemies; i++)
+        {
+            enemyX[i] += enemySpeedX[i];
+            if ((enemyX[i] < 0) || (enemyX[i] > 1024 - enemyWidth))
+                enemySpeedX[i] = -enemySpeedX[i];
+        }
+    }
+    static void CheckCollisions()
+    {
+        // If item is picked
+        if ((playerX < itemX + itemWidth) &&
+        (playerX + playerWidth > itemX) &&
+        (playerY < itemY + itemHeight) &&
+        (playerY + playerHeight > itemY))
+        {
+            score += 100;
+            itemX = rnd.Next(200, 800);
+            itemY = rnd.Next(50, 600);
+        }
+        // If we hit an enemy
+        for (int i = 0; i < numEnemies; i++)
+        {
+            if ((playerX < enemyX[i] + enemyWidth) &&
+            (playerX + playerWidth > enemyX[i]) &&
+            (playerY < enemyY[i] + enemyHeight) &&
+            (playerY + playerHeight > enemyY[i]))
+            {
+                lives--;
+                playerX = playerStartX;
+                playerY = playerStartY;
+                if (lives == 0)
+                    finished = true;
+            }
+        }
+    }
+
+    static void WaitForNextFrame()
+    {
+        SdlHardware.Pause(40);
+    }
+
+    static void Main(string[] args)
+    {
+        Init();
+        ShowIntro();
+        // Game Loop
+        do
+        {
+            // Update screen
+            DrawElements();
+            // Check input by the user
+            CheckInput();
+            // Move enemies, background, etc
+            MoveElements();
+            // Check collisions and apply game logic
+            CheckCollisions();
+            // Pause till next frame 
+            WaitForNextFrame();
+        }
+        while (!finished);
+    }
+}
